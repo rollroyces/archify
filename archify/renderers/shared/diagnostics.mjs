@@ -125,14 +125,17 @@ export function installRendererDiagnosticBoundary() {
     // `internal/unclassified` instead of carrying the real schema rule and
     // supported fixes the Agent repair loop needs.
     //
-    // Loop until the entire payload has been accepted, and tolerate a
-    // broken stderr by falling back to throwing so the renderer exit status
-    // still reflects the original failure.
+    // Make a single best-effort write of the full payload (the common case
+    // for diagnostics under the 64 KiB pipe ceiling) and, if that returns
+    // a short count, loop the remaining bytes. Tolerate a broken stderr by
+    // swallowing the write error so the renderer exit status still
+    // reflects the original failure.
     const stderrFd = process.stderr.fd;
-    let written = 0;
+    const buffer = Buffer.from(payload, 'utf8');
     try {
-      while (written < payload.length) {
-        const chunk = fs.writeSync(stderrFd, payload, written, payload.length - written);
+      let written = fs.writeSync(stderrFd, buffer, 0, buffer.length);
+      while (written < buffer.length) {
+        const chunk = fs.writeSync(stderrFd, buffer, written, buffer.length - written);
         if (chunk <= 0) break;
         written += chunk;
       }

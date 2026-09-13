@@ -7,6 +7,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { startPreview } from '../bin/preview.mjs';
 import { ChromeVisualBrowser, findChrome } from '../bin/visual-check.mjs';
+import { pathsAlias } from '../renderers/shared/output-path.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skillRoot = path.resolve(here, '..');
@@ -602,4 +603,30 @@ test('live preview forwards repo-root and publishes only verified evidence', { t
   } finally {
     await preview.stop();
   }
+});
+
+// Regression coverage for issue #274: a lowercase Windows drive letter in
+// --repo-root produced a 'root-not-top-level' failure because the strict
+// string equality between realRoot and fs.realpathSync(gitRoot) did not
+// normalize case. The fix routes the comparison through pathsAlias, which
+// probes the filesystem's case sensitivity at runtime and lowercases on
+// case-insensitive mounts without branching on platform.
+//
+// Unit-level: pathsAlias on the same directory re-cased (or via a
+// realpathSync that returns the underlying inode path) must treat the two
+// spellings as the same path. The earlier `===` equality would have
+// rejected the lowercased variant on macOS APFS / Windows NTFS, even
+// though they are the same inode.
+test('pathsAlias collapses case-insensitive variants of the same directory (#274)', () => {
+  const real = fs.mkdtempSync(path.join(os.tmpdir(), 'archify-case-'));
+  const upper = real.toUpperCase();
+  const lower = real.toLowerCase();
+  let upperReal;
+  try { upperReal = fs.realpathSync(upper); } catch { upperReal = upper; }
+  // Same directory, three spellings — every pairing must alias.
+  assert.equal(pathsAlias(upperReal, real), true, `upperReal=${upperReal} real=${real}`);
+  assert.equal(pathsAlias(real, upperReal), true);
+  assert.equal(pathsAlias(upper, real), true, `upper=${upper} real=${real}`);
+  assert.equal(pathsAlias(lower, real), true);
+  fs.rmSync(real, { recursive: true, force: true });
 });

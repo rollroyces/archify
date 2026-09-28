@@ -9,7 +9,35 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const skillRoot = path.resolve(__dirname, '..');
 
+// Diagram types supported by this build. Adding a sixth renderer requires
+// adding the name here AND creating `renderers/<type>/render-<type>.mjs`
+// with the documented entry-point contract.
 const TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle']);
+
+// `processIsRunning(pid)` is a permission probe, not a liveness probe. On
+// POSIX, `process.kill(pid, 0)` throws ESRCH for a nonexistent PID and
+// succeeds otherwise. On Windows, the same call throws EPERM for any PID we
+// do not own (including system PIDs < 4) and ESRCH only for nonexistent
+// PIDs. The delivery lock only ever holds the PID of a process we
+// ourselves spawned, so any error path means "the lock is stale; report it
+// as not running." Failing closed here keeps the protocol robust on both
+// platforms and matches audit finding S3.
+//
+// The unit-tested reference implementation lives in
+// `renderers/shared/process-running.mjs`; we intentionally keep this inline
+// copy so a partial install (missing renderers/ at startup) still boots and
+// the `doctor` command can report the missing dependency instead of failing
+// to resolve the import.
+function processIsRunning(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 const DELIVERY_SIDECAR_SUFFIXES = Object.freeze([
   '.delivery.json',
   '.delivery-pending.json',
@@ -213,16 +241,6 @@ function rejectExistingDeliveryLock(lockPath, output, fileBindingRuntime) {
     deliveryLockPath: lockPath,
     deliveryLockOwner: { pid: lock.pid, receiptId: lock.receiptId },
   });
-}
-
-function processIsRunning(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error.code !== 'ESRCH';
-  }
 }
 
 const deliveryOwnershipStates = new WeakMap();

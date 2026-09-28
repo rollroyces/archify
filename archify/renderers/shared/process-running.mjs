@@ -1,21 +1,41 @@
 // Cross-platform PID liveness check used by the delivery-lock protocol.
 //
-// `process.kill(pid, 0)` is a permission probe, not a liveness probe. It
-// succeeds silently when the caller has permission to signal the PID, even
-// if no such PID exists on some POSIX kernels, and throws an error code
-// otherwise:
+// `process.kill(pid, 0)` is a permission probe, not a liveness probe. The
+// delivery contract requires the lock to be treated as live whenever the
+// owner's death cannot be positively established. That gives three
+// terminal outcomes:
 //
-//   ESRCH — no such process (canonical "PID does not exist")
-//   EPERM — process exists but we cannot signal it (we do not own it)
+//   * the call succeeds               -> the PID exists; report "running"
+//                                        so the caller emits
+//                                        `delivery/concurrent-attempt`
+//   * the call throws `ESRCH`          -> no such process; report "not
+//                                        running" so the caller emits
+//                                        `delivery/lock-stale`
+//   * the call throws anything else    -> typically `EPERM` because the
+//                                        PID is owned by another user or
+//                                        a system process. The PID may
+//                                        still be alive; report "running"
+//                                        so the caller emits
+//                                        `delivery/concurrent-attempt` and
+//                                        does not delete a lock whose
+//                                        owner is still active
 //
-// For the delivery lock we care about one question: "is the process whose
-// PID is in the lock file still around and owned by us?" The only process we
-// ever write into a lock receipt is one we ourselves spawned (the CLI's
-// child PID), so any non-zero exit path means "the lock is stale; report it
-// as not running." That keeps the protocol fail-closed: a process we cannot
-// observe is treated as a stale lock, never as a live owner.
+// Earlier drafts of this function returned `false` for every non-success
+// path. That treated `EPERM` as "not running", which mapped to
+// `delivery/lock-stale` and authorised stale-lock recovery to remove the
+// lock file. When the original owner is still active (e.g. another Archify
+// invocation that we cannot signal because of a container boundary), that
+// recovery opens the door to two concurrent `deliver` runs. The delivery
+// contract is explicit:
 //
-// This is the audit finding S3 contract.
+//   "Valid schema-v1 lock whose PID is running, OR whose death cannot be
+//    established | Exit 1 with `delivery/concurrent-attempt`; preserve
+//    every shared path."
+//
+// So `EPERM` is "death cannot be established" and must map to
+// `delivery/concurrent-attempt`.
+//
+// This is the corrected contract for audit finding S3.
 
 export function isProcessRunning(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
@@ -23,6 +43,7 @@ export function isProcessRunning(pid) {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    return false;
+    if (error?.code === 'ESRCH') return false;
+    return true;
   }
 }

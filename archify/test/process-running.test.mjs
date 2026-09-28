@@ -25,22 +25,23 @@ test('process-running: a forked PID is reported as not running after SIGKILL', a
 
 // Boundary contract: invalid inputs must always return false, never throw.
 // Defensive: callers may hand us a NaN, undefined, string, or array if the
-// lock receipt was tampered with. We must fail closed (return false → "stale
-// lock" → recovery path) instead of throwing.
+// lock receipt was tampered with. We must fail closed (return false -> the
+// delivery protocol then treats the receipt as malformed and emits
+// `delivery/lock-invalid` from the schema guard, not a stale-lock recovery)
+// instead of throwing.
 test('process-running: invalid PIDs return false without throwing', () => {
   for (const bad of [0, -1, NaN, 1.5, Infinity, -Infinity, null, undefined, '123', {}, []]) {
     assert.equal(isProcessRunning(bad), false, `expected isProcessRunning(${JSON.stringify(bad)}) === false`);
   }
 });
 
-// Cross-platform contract: a process we cannot signal because we don't own it
-// must be reported as "not running" so the delivery protocol fails closed into
-// the stale-lock recovery path. The previous implementation returned true for
-// any error code other than ESRCH (including EPERM), which made POSIX report
-// foreign PIDs as live — fine for our spawned-PID-only use case, but the
-// audit's finding S3 asked us to make the semantics explicit and platform-aware
-// rather than relying on POSIX assumptions.
-test('process-running: EPERM from process.kill is treated as not running', () => {
+// Cross-platform contract: an EPERM error from process.kill means "the
+// process exists but we cannot signal it." Per the delivery contract, that
+// case is "death cannot be established" and must be reported as running so
+// the caller emits `delivery/concurrent-attempt` instead of letting
+// stale-lock recovery delete a lock whose owner is still active. The
+// earlier draft returned false for this case; that violated the contract.
+test('process-running: EPERM from process.kill is treated as running', () => {
   const original = process.kill;
   try {
     process.kill = function mockedKill(pid, signal) {
@@ -51,7 +52,7 @@ test('process-running: EPERM from process.kill is treated as not running', () =>
       }
       return original.call(this, pid, signal);
     };
-    assert.equal(isProcessRunning(999_999_999), false);
+    assert.equal(isProcessRunning(999_999_999), true);
   } finally {
     process.kill = original;
   }
@@ -59,8 +60,8 @@ test('process-running: EPERM from process.kill is treated as not running', () =>
 
 // Cross-platform contract: an ESRCH error from process.kill (the canonical
 // "PID does not exist" answer on both POSIX and Windows) must always be
-// treated as not running. This is the common-case path the delivery protocol
-// depends on.
+// treated as not running. This is the common-case path the delivery
+// protocol depends on for `delivery/lock-stale`.
 test('process-running: ESRCH from process.kill is treated as not running', () => {
   const original = process.kill;
   try {
@@ -73,6 +74,29 @@ test('process-running: ESRCH from process.kill is treated as not running', () =>
       return original.call(this, pid, signal);
     };
     assert.equal(isProcessRunning(999_999_998), false);
+  } finally {
+    process.kill = original;
+  }
+});
+
+// Cross-platform contract: any non-ESRCH error is treated as "uncertain,
+// assume alive". On POSIX that means EPERM (cross-uid / cross-container);
+// on Windows that includes EPERM, EACCES, and a handful of permission
+// surfaces that all signal "the process may still be there." This pins the
+// fail-OPEN-on-uncertainty path so a future "fail closed" rewrite does not
+// silently regress the contract.
+test('process-running: any non-ESRCH error code is treated as running', () => {
+  const original = process.kill;
+  try {
+    process.kill = function mockedKill(pid, signal) {
+      if (signal === 0 && pid === 999_999_997) {
+        const error = new Error('access denied');
+        error.code = 'EACCES';
+        throw error;
+      }
+      return original.call(this, pid, signal);
+    };
+    assert.equal(isProcessRunning(999_999_997), true);
   } finally {
     process.kill = original;
   }

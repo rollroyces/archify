@@ -183,14 +183,15 @@ try {
   if (notifierReceipt.status !== 'update_available') {
     throw new Error(`packaged update checker did not return an update candidate: ${JSON.stringify(notifierReceipt)}`);
   }
-  const notifierAcknowledgement = await checker.acknowledgeUpdate({
+  const notifierSnooze = await checker.setUpdatePreference({
     releasePath: path.join(skillRoot, 'skill-release.json'),
     cacheDirectory: notifierCache,
     eventKey: notifierReceipt.eventKey,
+    mode: 'snooze',
     now: () => Date.parse('2026-08-28T00:00:01Z'),
   });
-  if (notifierAcknowledgement.status !== 'acknowledged') {
-    throw new Error('packaged update checker did not persist a visible-notice acknowledgement');
+  if (notifierSnooze.status !== 'snoozed') {
+    throw new Error('packaged update checker did not persist an explicit snooze');
   }
 
   const skill = fs.readFileSync(path.join(skillRoot, 'SKILL.md'), 'utf8');
@@ -253,7 +254,12 @@ try {
   const legacyWorkflow = {
     schema_version: 1,
     diagram_type: 'workflow',
-    meta: { title: 'Package migration smoke', viewBox: [720, 400], legend: { mode: 'hidden' } },
+    meta: {
+      title: 'Package migration smoke',
+      output: 'package-migration-smoke.html',
+      viewBox: [720, 400],
+      legend: { mode: 'hidden' },
+    },
     lanes: [{ id: 'main', label: 'Main' }],
     nodes: [
       { id: 'source', lane: 'main', col: 0, type: 'frontend', label: 'Source' },
@@ -342,7 +348,7 @@ try {
   const tangentEndpoint = {
     schema_version: 1,
     diagram_type: 'architecture',
-    meta: { title: 'Endpoint direction smoke' },
+    meta: { title: 'Endpoint direction smoke', output: 'endpoint-direction-smoke.html' },
     components: [
       { id: 'source', type: 'external', label: 'Source', pos: [300, 100], size: [100, 60] },
       { id: 'target', type: 'backend', label: 'Target', pos: [100, 240], size: [100, 60] },
@@ -370,7 +376,7 @@ try {
   const inferredBridge = {
     schema_version: 1,
     diagram_type: 'architecture',
-    meta: { title: 'Inferred endpoint bridge smoke' },
+    meta: { title: 'Inferred endpoint bridge smoke', output: 'inferred-endpoint-bridge.html' },
     components: [
       { id: 'workspace', type: 'frontend', label: 'Workspace UI', pos: [40, 300], size: [120, 60] },
       { id: 'runtime-server', type: 'backend', label: 'Runtime Server', pos: [220, 300], size: [120, 60] },

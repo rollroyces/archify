@@ -27,7 +27,7 @@
       var MAX_LENS_FLOW_EDGES = 24;
 
       function nodesById() {
-        var byId = {};
+        var byId = Object.create(null);
         Array.prototype.forEach.call(svg.querySelectorAll('[data-node-id][data-node-kind]'), function (node) {
           var id = node.getAttribute('data-node-id');
           if (id && !byId[id]) byId[id] = node;
@@ -183,7 +183,7 @@
         return selectedKinds.length > 0 || !panel.hidden || html.getAttribute('data-present') === 'true' ||
           svg.hasAttribute('data-focus-active') || svg.hasAttribute('data-intent-trace-active') ||
           svg.hasAttribute('data-route-picking') || svg.hasAttribute('data-route-active') ||
-          svg.hasAttribute('data-story-active') || svg.hasAttribute('data-relationship-preview-active');
+          svg.hasAttribute('data-relationship-preview-active');
       }
       function previewLegendKind(entry) {
         clearLegendPreview();
@@ -194,7 +194,7 @@
           return (byId[id].getAttribute('data-node-kind') || 'neutral') === kind;
         });
         if (!matches.length) return false;
-        var chosen = {};
+        var chosen = Object.create(null);
         matches.forEach(function (id) {
           chosen[id] = true;
           byId[id].setAttribute('data-legend-preview-match', '');
@@ -370,7 +370,7 @@
         options = options || {};
         cleanSvgState();
         var byId = nodesById();
-        var nodeKind = {};
+        var nodeKind = Object.create(null);
         Object.keys(byId).forEach(function (id) { nodeKind[id] = byId[id].getAttribute('data-node-kind') || 'neutral'; });
         if (!selectedKinds.length) {
           status.textContent = viewerText('viewer.lens.choose');
@@ -454,9 +454,6 @@
         }
         if (Archify.routeProbe && typeof Archify.routeProbe.clear === 'function') {
           Archify.routeProbe.clear({ updateUrl: false, restoreFocus: false });
-        }
-        if (Archify.guidedViews && typeof Archify.guidedViews.showAll === 'function') {
-          Archify.guidedViews.showAll({ clearFocus: false, updateUrl: false });
         }
         if (Archify.intentTrace && typeof Archify.intentTrace.clear === 'function') {
           Archify.intentTrace.clear({ announce: false });

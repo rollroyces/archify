@@ -289,6 +289,28 @@ export const BRAND_MARKS = Object.freeze([
     }
   },
   {
+    "id": "codeberg",
+    "title": "Codeberg",
+    "category": "engineering",
+    "aliases": [],
+    "domains": [
+      "codeberg.org"
+    ],
+    "viewBox": 24,
+    "hex": "2185D0",
+    "path": "M11.999.747A11.974 11.974 0 0 0 0 12.75c0 2.254.635 4.465 1.833 6.376L11.837 6.19c.072-.092.251-.092.323 0l4.178 5.402h-2.992l.065.239h3.113l.882 1.138h-3.674l.103.374h3.86l.777 1.003h-4.358l.135.483h4.593l.695.894h-5.038l.165.589h5.326l.609.785h-5.717l.182.65h6.038l.562.727h-6.397l.183.65h6.717A12.003 12.003 0 0 0 24 12.75 11.977 11.977 0 0 0 11.999.747zm3.654 19.104.182.65h5.326c.173-.204.353-.433.513-.65zm.385 1.377.18.65h3.563c.233-.198.485-.428.712-.65zm.383 1.377.182.648h1.203c.356-.204.685-.412 1.042-.648zz",
+    "provenance": {
+      "provider": "Simple Icons",
+      "providerVersion": "16.28.0",
+      "source": "https://codeberg.org/Codeberg/Design/src/commit/ac514aa9aaa2457d4af3c3e13df3ab136d22a49a/logo/special/codeberg-logo_special_fake-transaprency.svg",
+      "guidelines": "https://codeberg.org/Codeberg/Design",
+      "license": {
+        "type": "CC0-1.0",
+        "url": "https://spdx.org/licenses/CC0-1.0"
+      }
+    }
+  },
+  {
     "id": "databricks",
     "title": "Databricks",
     "category": "data",

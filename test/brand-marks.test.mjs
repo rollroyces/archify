@@ -32,7 +32,7 @@ test('third-party notices cover every recorded individual mark license', () => {
 
   assert.equal(THIRD_PARTY_NOTICE_DISCLOSURE_COUNT, 39, 'notice contract changed without review');
   assert.deepEqual(validateThirdPartyNotices(notices), { ok: true, missing: [] });
-  assert.equal(licensedMarks.length, 8, 'pinned Simple Icons license inventory changed');
+  assert.equal(licensedMarks.length, 9, 'pinned Simple Icons license inventory changed');
   for (const mark of licensedMarks) {
     assert.match(notices, new RegExp(`\\| ${mark.title.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')} \\|`));
     assert.ok(notices.includes(mark.provenance.source), `${mark.id} source must be disclosed`);
@@ -128,7 +128,7 @@ function nodeBlock(html, id) {
 }
 
 test('generated catalog exposes a substantial, unique, provenance-backed preset library', () => {
-  assert.equal(BRAND_MARKS.length, 107);
+  assert.equal(BRAND_MARKS.length, 108);
   assert.equal(new Set(BRAND_MARKS.map((mark) => mark.id)).size, BRAND_MARKS.length);
   for (const mark of BRAND_MARKS) {
     assert.match(mark.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
@@ -241,6 +241,45 @@ test('known-brand URLs use the bundled vector instead of the network', () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.match(html, /data-brand-mark="github"[^>]+data-brand-status="preset"/);
   assert.doesNotMatch(html, /data-brand-status="captured"/);
+});
+
+test('the bundled codeberg engineering brand resolves by id and by domain', () => {
+  const listed = BRAND_MARKS.find((mark) => mark.id === 'codeberg');
+  assert.ok(listed, 'catalog must include the codeberg mark');
+  assert.equal(listed.title, 'Codeberg');
+  assert.equal(listed.category, 'engineering');
+  assert.deepEqual(listed.domains, ['codeberg.org']);
+  assert.match(listed.path, /^M/);
+  assert.match(listed.hex, /^[0-9A-F]{6}$/);
+  assert.equal(listed.provenance.provider, 'Simple Icons');
+  assert.match(listed.provenance.source, /^https:\/\/codeberg\.org\//);
+
+  const cliResult = spawnSync(process.execPath, [cli, 'brands', 'codeberg', '--json'], {
+    cwd: skillRoot,
+    encoding: 'utf8',
+  });
+  assert.equal(cliResult.status, 0, cliResult.stderr || cliResult.stdout);
+  const receipt = JSON.parse(cliResult.stdout);
+  assert.equal(receipt.ok, true);
+  assert.ok(receipt.marks.some((mark) => mark.id === 'codeberg'), 'CLI discovery must list codeberg');
+
+  const idInput = writeFixture('architecture', 'codeberg-id', 'codeberg');
+  const idRender = renderSync('architecture', idInput, 'codeberg-id');
+  assert.equal(idRender.result.status, 0, idRender.result.stderr || idRender.result.stdout);
+  assert.match(idRender.html, /data-node-brand="Codeberg"/i);
+  assert.match(idRender.html, /data-brand-mark="codeberg"[^>]+data-brand-status="preset"/);
+  assert.match(idRender.html, /<title>[^<]*Codeberg<\/title>/i);
+
+  const urlInput = writeFixture('architecture', 'codeberg-domain', 'https://codeberg.org/tt-a1i/archify');
+  const urlRender = renderSync('architecture', urlInput, 'codeberg-domain');
+  assert.equal(urlRender.result.status, 0, urlRender.result.stderr || urlRender.result.stdout);
+  assert.match(urlRender.html, /data-brand-mark="codeberg"[^>]+data-brand-status="preset"/);
+  assert.doesNotMatch(urlRender.html, /data-brand-status="captured"/);
+
+  const diagram = JSON.parse(fs.readFileSync(idInput, 'utf8'));
+  const block = nodeBlock(idRender.html, diagram.components[0].id);
+  const brand = block.match(/data-brand-mark="codeberg"[^>]+translate\(([-\d.]+) ([-\d.]+)\)">\s*<rect width="([-\d.]+)" height="([-\d.]+)" rx="([-\d.]+)" class="brand-mark-badge"\/>/);
+  assert.ok(brand, 'expected codeberg brand badge with stable identifier');
 });
 
 test('unknown URL strings fail closed until an exact captured digest is authored', () => {

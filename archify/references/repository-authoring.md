@@ -15,11 +15,12 @@ fact has supporting source evidence.
    forty-character revision in `meta.repository`. Use `link_mode: "local-only"`
    for an SSH origin, unsupported forge, intentionally local-only source links,
    or a local fixture whose HTTPS URL is only a repository identity; retain the
-   URL and revision. Web links require a supported GitHub, Gitee, or GitLab HTTPS
-   origin; GitHub, Gitee, gitlab.com, and a self-managed GitLab host declared with
+   URL and revision. Web links require a supported GitHub, Gitee, GitLab,
+   public `codeberg.org`, or public `gitea.com` HTTPS origin; GitHub, Gitee,
+   gitlab.com, and a self-managed GitLab host declared with
    `provider: "gitlab"` match their SSH origin on the same host. If the
-   worktree is dirty, note the changed paths in your reply; the candidate has no field for them. Repository evidence is verified
-   against committed bytes at the pinned revision, not working-tree edits:
+   worktree is dirty, note the changed paths in your reply; the candidate has
+   no field for them. Repository evidence is verified against committed bytes at the pinned revision, not working-tree edits:
    inspect a clean checkout at that revision for any cited changed path. Do not
    present uncommitted bytes as evidence for `HEAD`; `local-only` does not record
    a verifiable snapshot of those bytes.
@@ -124,3 +125,37 @@ control ownership when summarizing filesystem I/O: the code that reads or writes
 a file owns that action, while a pure in-memory transform receives and returns
 values. This fact-check does not require a separate overview node for every helper. Use the existing examples for valid field shape, then replace all
 identifiers, wording, source paths, and claims with inspected repository facts.
+
+## Supported hosts
+
+Web source links are emitted for a small, tested set of public canonical
+hosts. Authors do not pick a provider; the verifier detects the host from the
+authored `meta.repository.url` and rejects anything else in `link_mode: "web"`.
+Self-hosted variants of the same forges (anything other than the exact host
+below) and any non-canonical endpoint stay `local-only`.
+
+- **GitHub** — `https://github.com/<owner>/<repo>` (HTTPS on port 443) and the
+  matching `git@github.com:...` / `ssh://git@github.com/...` Git SSH forms.
+  Repository paths are case-insensitive; the trailing `.git` is normalized
+  away. The default web link uses `/tree/<sha>` for the repository root and
+  `/blob/<sha>/<path>#L<line>-L<end_line>` for sources.
+- **Gitee** — `https://gitee.com/<owner>/<repo>` and the matching `git@...`
+  SSH forms. Repository paths preserve case; a trailing `.git` is normalized
+  away. Web links use `/tree/<sha>` and
+  `/blob/<sha>/<path>#L<line>-<end_line>` (single `L` between numbers, the
+  Gitee-specific range form).
+- **Codeberg** (public Forgejo, `codeberg.org`) — `https://codeberg.org/<owner>/<repo>`
+  only. SSH origins like `git@codeberg.org:owner/repo.git` map to the same
+  identity on port 22. Repository paths preserve case; a trailing `.git` is
+  normalized away. Web links use `/src/commit/<sha>` for the repository root
+  and `/src/commit/<sha>/<encoded-path>#L<line>-L<end_line>` for sources,
+  matching the Forgejo browse URLs.
+- **gitea.com** — `https://gitea.com/<owner>/<repo>` only, with the same SSH
+  pairing as Codeberg. Repository paths preserve case and a trailing `.git`
+  normalizes away. Web links use the Gitea `/src/commit/<sha>` root form and
+  `/src/commit/<sha>/<encoded-path>#L<line>-L<end_line>` for sources.
+
+Hosts that look similar but are not on this list — `git.example.com`,
+`gitea.internal`, `gitlab.com`, `bitbucket.org`, a non-default port of
+`codeberg.org`, an HTTPS-only or SSH-only custom Forgejo deployment, and
+unknown hosts — keep `link_mode: "local-only"` and never generate web links.

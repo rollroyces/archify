@@ -2,7 +2,7 @@
 // This module never contacts a remote server or reads the user's SSH config.
 // Public forge hosts select their provider automatically. GitLab is also
 // self-hosted, so an explicit `provider: "gitlab"` hint selects it on any host.
-const PROVIDER_HOSTS = { 'github.com': 'github', 'gitee.com': 'gitee', 'gitlab.com': 'gitlab' };
+const PROVIDER_HOSTS = { 'github.com': 'github', 'gitee.com': 'gitee', 'gitlab.com': 'gitlab', 'codeberg.org': 'codeberg', 'gitea.com': 'gitea' };
 
 export function parseRepositoryRemote(value, { authored = false, provider: providerHint } = {}) {
   if (typeof value !== 'string') return null;
@@ -56,9 +56,19 @@ export function redactRepositoryRemote(value) {
 
 export function repositorySourceHref(provider, url, revision, source) {
   const encodedPath = source.path.split('/').map(encodeURIComponent).join('/');
+  // Codeberg (Forgejo) and public gitea.com (Gitea) all emit the
+  // GitLab-style #L<line>-L<end_line> fragment for line ranges; Gitee alone
+  // uses the short #L<line>-<end_line> form.
+  const rangeLikeGitHub = provider === 'github' || provider === 'codeberg' || provider === 'gitea';
   const end = source.endLine && source.endLine !== source.line
-    ? `-${provider === 'github' ? 'L' : ''}${source.endLine}` : '';
+    ? `-${rangeLikeGitHub ? 'L' : ''}${source.endLine}` : '';
   const fragment = source.line ? `#L${source.line}${end}` : '';
+  // Codeberg (Forgejo) and public gitea.com (Gitea) expose source at
+  // /src/commit/<sha>/... rather than the /blob/<sha>/... form used by
+  // GitHub and Gitee.
+  if (provider === 'codeberg' || provider === 'gitea') {
+    return `${url}/src/commit/${revision}/${encodedPath}${fragment}`;
+  }
   if (provider !== 'gitlab') return `${url}/blob/${revision}/${encodedPath}${fragment}`;
   // GitLab renders Markdown blobs, where line anchors select nothing; the
   // plain view keeps the cited lines highlighted.
@@ -67,5 +77,10 @@ export function repositorySourceHref(provider, url, revision, source) {
 }
 
 export function repositoryTreeHref(provider, url, revision) {
+  // Codeberg (Forgejo) and public gitea.com (Gitea) expose the revision-pinned
+  // repository view at /src/commit/<sha> rather than /tree/<sha>.
+  if (provider === 'codeberg' || provider === 'gitea') {
+    return `${url}/src/commit/${revision}`;
+  }
   return `${url}/${provider === 'gitlab' ? '-/' : ''}tree/${revision}`;
 }

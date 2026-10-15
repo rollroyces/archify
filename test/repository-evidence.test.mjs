@@ -226,3 +226,159 @@ test('Gitee evidence generates provider-specific revision and line links', (t) =
     assert.equal(evidence.nodes.users[1].href, `https://gitee.com/example/evidence-repo/blob/${data.revision}/src/store.js#L1`);
   }
 });
+test('Codeberg evidence emits /src/commit/ links for HTTPS and SSH origins with case-preserving paths', () => {
+  const data = fixture();
+  data.diagram.meta.repository.url = 'https://codeberg.org/Forgejo/Forgejo';
+  fs.writeFileSync(data.input, JSON.stringify(data.diagram));
+  const output = path.join(data.root, 'codeberg.html');
+  for (const remote of [
+    'https://codeberg.org/Forgejo/Forgejo.git/',
+    'git@codeberg.org:Forgejo/Forgejo.git',
+    'ssh://git@codeberg.org/Forgejo/Forgejo.git',
+  ]) {
+    git(data.root, 'remote', 'set-url', 'origin', remote);
+    const result = run(['deliver', 'architecture', data.input, output, '--repo-root', data.root, '--json']);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const evidence = evidencePayload(fs.readFileSync(output, 'utf8'));
+    assert.equal(evidence.repository.href, `https://codeberg.org/Forgejo/Forgejo/src/commit/${data.revision}`);
+    assert.equal(evidence.nodes.users[0].href, `https://codeberg.org/Forgejo/Forgejo/src/commit/${data.revision}/src/router.js#L1-L3`);
+    assert.equal(evidence.nodes.users[1].href, `https://codeberg.org/Forgejo/Forgejo/src/commit/${data.revision}/src/store.js#L1`);
+  }
+});
+
+test('public gitea.com evidence emits /src/commit/ links for HTTPS and SSH origins with case-preserving paths', () => {
+  const data = fixture();
+  data.diagram.meta.repository.url = 'https://gitea.com/gitea/Tea';
+  fs.writeFileSync(data.input, JSON.stringify(data.diagram));
+  const output = path.join(data.root, 'gitea-com.html');
+  for (const remote of [
+    'https://gitea.com/gitea/Tea.git/',
+    'git@gitea.com:gitea/Tea.git',
+    'ssh://git@gitea.com/gitea/Tea.git',
+  ]) {
+    git(data.root, 'remote', 'set-url', 'origin', remote);
+    const result = run(['deliver', 'architecture', data.input, output, '--repo-root', data.root, '--json']);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const evidence = evidencePayload(fs.readFileSync(output, 'utf8'));
+    assert.equal(evidence.repository.href, `https://gitea.com/gitea/Tea/src/commit/${data.revision}`);
+    assert.equal(evidence.nodes.users[0].href, `https://gitea.com/gitea/Tea/src/commit/${data.revision}/src/router.js#L1-L3`);
+    assert.equal(evidence.nodes.users[1].href, `https://gitea.com/gitea/Tea/src/commit/${data.revision}/src/store.js#L1`);
+  }
+});
+
+test('parseRepositoryRemote recognises canonical HTTPS, Git SSH, and SCP forms for codeberg.org and gitea.com', () => {
+  const codebergHttps = parseRepositoryRemote('https://codeberg.org/forgejo/forgejo.git');
+  assert.equal(codebergHttps.provider, 'codeberg');
+  assert.equal(codebergHttps.protocol, 'https:');
+  assert.equal(codebergHttps.endpoint, 'standard');
+  assert.equal(codebergHttps.path, 'forgejo/forgejo');
+  // Identity is hostname, port-equivalent endpoint, pathKind, and the
+  // raw (case-preserving) repository path.
+  assert.equal(codebergHttps.identity, JSON.stringify(['codeberg.org', 'standard', 'repository', 'forgejo/forgejo']));
+
+  const codebergSsh = parseRepositoryRemote('git@codeberg.org:Forgejo/Forgejo.git');
+  assert.equal(codebergSsh.provider, 'codeberg');
+  assert.equal(codebergSsh.protocol, 'ssh:');
+  assert.equal(codebergSsh.endpoint, 'standard');
+  assert.equal(codebergSsh.path, 'Forgejo/Forgejo');
+  assert.equal(codebergSsh.identity, JSON.stringify(['codeberg.org', 'standard', 'repository', 'Forgejo/Forgejo']));
+
+  const giteaHttps = parseRepositoryRemote('https://gitea.com/gitea/tea.git');
+  assert.equal(giteaHttps.provider, 'gitea');
+  assert.equal(giteaHttps.protocol, 'https:');
+  assert.equal(giteaHttps.endpoint, 'standard');
+  assert.equal(giteaHttps.path, 'gitea/tea');
+
+  const giteaSsh = parseRepositoryRemote('git@gitea.com:gitea/Tea.git');
+  assert.equal(giteaSsh.provider, 'gitea');
+  assert.equal(giteaSsh.protocol, 'ssh:');
+  assert.equal(giteaSsh.endpoint, 'standard');
+  assert.equal(giteaSsh.path, 'gitea/Tea');
+});
+
+test('repositorySourceHref emits /src/commit/ URLs for codeberg and gitea, including encoded paths and line ranges', () => {
+  const sha = '0380b6d688eaf1390e4f24c618386737bf9fc6b1';
+  // The acceptance samples from issues #866 and #864.
+  assert.equal(
+    repositorySourceHref('codeberg', 'https://codeberg.org/forgejo/forgejo', sha, { path: 'README.md', line: 1, endLine: 3 }),
+    `https://codeberg.org/forgejo/forgejo/src/commit/${sha}/README.md#L1-L3`,
+  );
+  assert.equal(
+    repositorySourceHref('gitea', 'https://gitea.com/gitea/tea', sha, { path: 'README.md', line: 1, endLine: 3 }),
+    `https://gitea.com/gitea/tea/src/commit/${sha}/README.md#L1-L3`,
+  );
+  // Single-line path-only references stay on /src/commit/.
+  assert.equal(
+    repositorySourceHref('codeberg', 'https://codeberg.org/forgejo/forgejo', sha, { path: 'src/router.js', line: 1 }),
+    `https://codeberg.org/forgejo/forgejo/src/commit/${sha}/src/router.js#L1`,
+  );
+  // Path-only sources emit no fragment.
+  assert.equal(
+    repositorySourceHref('codeberg', 'https://codeberg.org/forgejo/forgejo', sha, { path: 'README.md' }),
+    `https://codeberg.org/forgejo/forgejo/src/commit/${sha}/README.md`,
+  );
+  // Non-ASCII paths are percent-encoded exactly like Gitee.
+  assert.equal(
+    repositorySourceHref('codeberg', 'https://codeberg.org/Forgejo/Forgejo', sha, { path: 'src/中文 # router.js', line: 1, endLine: 2 }),
+    `https://codeberg.org/Forgejo/Forgejo/src/commit/${sha}/src/${encodeURIComponent('中文 # router.js')}#L1-L2`,
+  );
+  // Root revision links (/src/commit/<sha>) mirror the source-link prefix.
+  assert.equal(
+    repositoryRootHref('codeberg', 'https://codeberg.org/forgejo/forgejo', sha),
+    `https://codeberg.org/forgejo/forgejo/src/commit/${sha}`,
+  );
+  assert.equal(
+    repositoryRootHref('gitea', 'https://gitea.com/gitea/tea', sha),
+    `https://gitea.com/gitea/tea/src/commit/${sha}`,
+  );
+});
+
+test('self-hosted Forgejo and Gitea remain local-only (provider stays null)', () => {
+  for (const url of [
+    'https://git.example.com/owner/repo.git',
+    'https://gitea.internal.example/owner/repo.git',
+    'https://forgejo.acme.test:8443/Platform/repo.git',
+    'git@git.example.com:owner/repo.git',
+  ]) {
+    const parsed = parseRepositoryRemote(url);
+    assert.notEqual(parsed, null, url);
+    assert.equal(parsed.provider, null, `${url} must not declare a public provider`);
+  }
+
+  const data = fixture();
+  for (const [url, remote] of [
+    ['https://git.example.com/Platform/evidence-repo', 'https://git.example.com/Platform/evidence-repo'],
+    ['https://gitea.internal.example/Platform/evidence-repo', 'https://gitea.internal.example/Platform/evidence-repo'],
+  ]) {
+    data.diagram.meta.repository = { url, revision: data.revision, link_mode: 'local-only' };
+    fs.writeFileSync(data.input, JSON.stringify(data.diagram));
+    git(data.root, 'remote', 'set-url', 'origin', remote);
+    const output = path.join(data.root, 'self-hosted.html');
+    const result = run(['deliver', 'architecture', data.input, output, '--repo-root', data.root, '--json']);
+    assert.equal(result.status, 0, `${url}: ${result.stderr || result.stdout}`);
+    const evidence = evidencePayload(fs.readFileSync(output, 'utf8'));
+    assert.equal(evidence.repository.linkMode, 'local-only');
+    assert.equal(evidence.repository.href, undefined);
+    assert.ok(evidence.nodes.users.every((source) => !Object.hasOwn(source, 'href')));
+  }
+});
+
+test('Codeberg and gitea.com rejecting non-standard endpoints still routes web mode to local-only', () => {
+  const data = fixture();
+  for (const repository of [
+    { url: 'https://codeberg.org:8443/forgejo/forgejo.git', remote: 'https://codeberg.org:8443/forgejo/forgejo.git' },
+    { url: 'http://codeberg.org/forgejo/forgejo.git', remote: 'http://codeberg.org/forgejo/forgejo.git' },
+    { url: 'ssh://git@codeberg.org:2222/forgejo/forgejo.git', remote: 'ssh://git@codeberg.org:2222/forgejo/forgejo.git' },
+    { url: 'https://gitea.com:8443/gitea/tea.git', remote: 'https://gitea.com:8443/gitea/tea.git' },
+  ]) {
+    data.diagram.meta.repository = { url: repository.url, revision: data.revision };
+    fs.writeFileSync(data.input, JSON.stringify(data.diagram));
+    git(data.root, 'remote', 'set-url', 'origin', repository.remote);
+    const result = run(['validate', 'architecture', data.input, '--repo-root', data.root, '--json']);
+    assert.equal(result.status, 1, repository.url);
+    assert.ok(
+      JSON.parse(result.stdout).diagnostics.some(({ code }) => code === 'repository-evidence/links-unsupported'),
+      repository.url,
+    );
+  }
+});

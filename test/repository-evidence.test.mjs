@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { startPreview } from '../archify/bin/preview.mjs';
 import { verifyRepositoryEvidence } from '../archify/renderers/shared/repository-evidence.mjs';
+import { parseRepositoryRemote, repositorySourceHref, repositoryTreeHref } from '../archify/renderers/shared/repository-location.mjs';
 import { skillRoot, cli, git, fixture, run, evidencePayload } from './helpers/repository-evidence-fixture.mjs';
 
 // Address variants exercise the same real Git verifier. Keep representative
@@ -324,11 +325,11 @@ test('repositorySourceHref emits /src/commit/ URLs for codeberg and gitea, inclu
   );
   // Root revision links (/src/commit/<sha>) mirror the source-link prefix.
   assert.equal(
-    repositoryRootHref('codeberg', 'https://codeberg.org/forgejo/forgejo', sha),
+    repositoryTreeHref('codeberg', 'https://codeberg.org/forgejo/forgejo', sha),
     `https://codeberg.org/forgejo/forgejo/src/commit/${sha}`,
   );
   assert.equal(
-    repositoryRootHref('gitea', 'https://gitea.com/gitea/tea', sha),
+    repositoryTreeHref('gitea', 'https://gitea.com/gitea/tea', sha),
     `https://gitea.com/gitea/tea/src/commit/${sha}`,
   );
 });

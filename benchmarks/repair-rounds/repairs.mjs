@@ -84,7 +84,9 @@ const RULES = [
   },
   {
     // "Label "X" (~475px) is wider than component "users" (120px)"
-    match: (diagnostic) => diagnostic.code === 'layout/constraint'
+    // Architecture reports this failure as architecture/component-label-overflow;
+    // every other renderer still classifies it as layout/constraint.
+    match: (diagnostic) => (diagnostic.code === 'layout/constraint' || diagnostic.code === 'architecture/component-label-overflow')
       && /Label "(.+)" \(~[\d.]+px\) is wider than component "([^"]+)" \(([\d.]+)px\)/.test(diagnostic.message || ''),
     apply(diagnostic, doc, context) {
       const match = diagnostic.message.match(/Label "(.+)" \(~([\d.]+)px\) is wider than component "([^"]+)" \(([\d.]+)px\)/);
@@ -116,11 +118,17 @@ const RULES = [
       && diagnostic.subject?.path
       && diagnostic.supportedFixes?.some((fix) => /set \S+ to verified node id "/.test(fix)),
     apply(diagnostic, doc) {
-      const fix = diagnostic.supportedFixes.find((entry) => /set \S+ to verified node id "/.test(entry));
-      const target = fix.match(/set (\S+) to verified node id "([^"]+)"/);
-      return setByPointer(doc, target[1], target[2])
-        ? { detail: `set ${target[1]} to "${target[2]}"` }
-        : null;
+      const fixes = (diagnostic.supportedFixes || [])
+        .map((entry) => entry.match(/set (\S+) to verified node id "([^"]+)"/))
+        .filter(Boolean);
+      const candidate = fixes.filter((fix) => fix[2] === fixes[0]?.[2]);
+      if (!candidate.length || candidate.some((fix) => getByPointer(doc, fix[1]) === undefined)) return null;
+      const applied = [];
+      for (const fix of candidate) {
+        if (!setByPointer(doc, fix[1], fix[2])) return null;
+        applied.push(fix[1]);
+      }
+      return { detail: `set ${applied.join(', ')} to "${candidate[0][2]}"` };
     },
   },
   {

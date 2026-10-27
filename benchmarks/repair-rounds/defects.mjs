@@ -77,7 +77,7 @@ export const DEFECTS = {
   },
   'node-long-label': {
     appliesTo: ALL_TYPES,
-    expectedCodes: { default: ['layout/constraint'] },
+    expectedCodes: { architecture: ['architecture/component-label-overflow'], default: ['layout/constraint'] },
     inject(doc, { type, nodeIndex } = {}) {
       const nodes = doc[COLLECTIONS[type].nodes];
       const node = nodeAt(doc, type, nodeIndex);
@@ -111,6 +111,19 @@ export const DEFECTS = {
       const edge = edgeAt(doc, type, edgeIndex);
       const restores = [capture(doc, `/${COLLECTIONS[type].edges}/${edges.indexOf(edge)}/to`)];
       edge.to = 'benchmark-ghost-node';
+      return { restores };
+    },
+  },
+  // Same unknown id referenced from an edge endpoint and mainPath: a fix is
+  // only complete when it repoints every reference, and the advertised edits
+  // must match the set verification applied.
+  'endpoint-shared-ghost': {
+    appliesTo: ['workflow'],
+    expectedCodes: { default: ['workflow/unknown-edge-endpoint'] },
+    inject(doc) {
+      const restores = [capture(doc, '/edges/0/from'), capture(doc, '/mainPath/0')];
+      doc.edges[0].from = 'benchmark-ghost-node';
+      doc.mainPath[0] = 'benchmark-ghost-node';
       return { restores };
     },
   },

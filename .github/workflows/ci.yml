@@ -479,16 +479,19 @@ jobs:
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
+          retention-days: 7
           name: website-homepage-evidence
           path: website/.browser-evidence
           if-no-files-found: warn
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
+          retention-days: 7
           name: website-dist
           path: website/dist
           include-hidden-files: true
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
+          retention-days: 7
           name: website-cloudflare-dist
           path: website/dist-cloudflare
           include-hidden-files: true

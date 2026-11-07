@@ -60,8 +60,8 @@ https://github.com/user-attachments/assets/78570807-ba1d-4737-953f-55504a378a87
 
 Works with Cursor, Claude Code, Codex CLI, and OpenCode. See installation options below for additional integrations.
 
-```bash
-npx skills add tt-a1i/archify -g
+```text
+Install Archify for me by reading https://raw.githubusercontent.com/tt-a1i/archify/main/llms.txt
 ```
 
 Send this to your agent:
@@ -126,7 +126,6 @@ Live examples: [First HTTPS visit](https://archify.si/cases/explainer/tls-first-
 <td align="center" width="240"><a href="https://www.infistar.cc/register?aff=9N89LEMV&amp;ref_source=link"><img src="docs/assets/sponsors/infistar-logo.svg" alt="Infistar.cc" width="140" /></a><br/><strong><a href="https://www.infistar.cc/register?aff=9N89LEMV&amp;ref_source=link">Infistar.cc</a></strong></td>
 <td>Thank you to Infistar.cc for sponsoring Archify! One API key covers text, image, and video creation with GPT, Claude, Gemini, DeepSeek, Qwen, Kling, and other models, without switching groups. Model API pricing starts at 1% of official rates, and AI images start at ¥0.06 each.<br/><br/>Exclusive offer for Archify users: Sign up through our referral link for $5 in trial credits and a special offer on your first top-up.<br/><br/><a href="https://www.infistar.cc/register?aff=9N89LEMV&amp;ref_source=link">Try Infistar →</a></td>
 </tr>
-<tr><td align="center" width="240"><a href="https://github.com/EverMind-AI/Raven"><img src="docs/assets/sponsors/evermind-archify-raven.png" alt="Archify × Raven" width="200" /></a><br/><strong><a href="https://github.com/EverMind-AI">EverMind</a> · <a href="https://github.com/EverMind-AI/Raven">Raven</a></strong></td><td>EverMind sponsors Archify and builds memory infrastructure for agents. Its <a href="https://github.com/EverMind-AI/Raven"><strong>Raven</strong></a> harness supports Archify as a Skill for verified, interactive system maps.</td></tr>
 </table>
 
 > Want to sponsor Archify? [Contact us by email.](mailto:2801884530@qq.com)
@@ -215,8 +214,8 @@ Open [`examples/web-app.html`](examples/web-app.html) locally to try the complet
 
 ### 1. Install
 
-```bash
-npx skills add tt-a1i/archify -g
+```text
+Install Archify for me by reading https://raw.githubusercontent.com/tt-a1i/archify/main/llms.txt
 ```
 
 <details>
@@ -225,7 +224,7 @@ npx skills add tt-a1i/archify -g
 For an explicit, non-interactive Cursor install:
 
 ```bash
-npx -y skills add tt-a1i/archify --skill archify --agent cursor --global --copy --yes
+npx -y skills@latest add https://archify.si --skill archify --agent cursor --global --copy --yes
 ```
 
 To try without installing:
@@ -517,6 +516,12 @@ Scan the QR code below with Alipay, or save it and open it in Alipay to scan.
 </details>
 
 Using Archify, sharing it, reporting bugs, and contributing improvements are also ways to help.
+
+## Contributors
+
+Thanks to everyone who helped build Archify. [Go follow them.](https://github.com/tt-a1i/archify/graphs/contributors) ❤️
+
+<p align="center"><a href="https://github.com/tt-a1i/archify/graphs/contributors"><img alt="Archify contributors" src="https://raw.githubusercontent.com/tt-a1i/archify/contributors/contributors.svg" width="1000" /></a></p>
 
 ## Star History
 

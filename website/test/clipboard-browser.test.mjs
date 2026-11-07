@@ -64,7 +64,7 @@ test('real Chrome: website copy controls report real outcomes and preserve selec
           document.querySelector('[data-type="workflow"]').click();
           document.querySelector('[data-input="repository"]').click();
         }
-        return page === 'index' ? ['[data-copy-text]', '[data-copy-from]'] : page === 'guide' ? ['#copy-prompt'] : ['[data-copy-source="install-command"]', '[data-copy-source="project-command"]', '#copy-prompt', '#copy-starter'];
+        return page === 'index' ? ['[data-copy-text]', '[data-copy-from]'] : page === 'guide' ? ['#copy-prompt'] : ['[data-copy-source="agent-install-prompt"]', '[data-copy-source="install-command"]', '[data-copy-source="project-command"]', '#copy-prompt', '#copy-starter'];
       })()`);
       for (const selector of controls) for (const [api, fallback] of [['success', 'throw'], ['missing', 'true'], ['missing', 'false'], ['missing', 'throw'], ['reject', 'true'], ['reject', 'false'], ['reject', 'throw']]) {
         const receipt = await evaluate(`(async () => {
@@ -78,7 +78,7 @@ test('real Chrome: website copy controls report real outcomes and preserve selec
           else if (button.dataset.copySource) expected = document.getElementById(button.dataset.copySource).textContent.trim();
           else if (selector === '#copy-prompt') expected = document.getElementById('recipe-prompt').textContent;
           else {
-            const command = document.getElementById('install-command').textContent.trim(), prompt = document.getElementById('recipe-prompt').textContent;
+            const command = document.getElementById('agent-install-prompt').textContent.trim(), prompt = document.getElementById('recipe-prompt').textContent;
             expected = ${JSON.stringify(lang)} === 'zh' ? '为 Cursor 安装 Archify：\\n' + command + '\\n\\n然后在目标仓库中让 Cursor：\\n' + prompt : 'Install Archify for Cursor:\\n' + command + '\\n\\nThen, in your target repository, ask Cursor:\\n' + prompt;
           }
           const writes = [], legacy = [];

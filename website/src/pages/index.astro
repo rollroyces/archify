@@ -11,7 +11,7 @@ import css from '../styles/index.css?raw';
 import clipboardScript from '../scripts/clipboard.js?raw';
 import pageScript from '../scripts/index.js?raw';
 
-const installCommand = 'npx -y skills add tt-a1i/archify --skill archify --agent claude-code --global --copy --yes';
+const installCommand = 'npx -y skills@latest add https://archify.si --skill archify --agent claude-code --global --copy --yes';
 const { lang = 'en' } = Astro.props;
 ---
 <SiteLayout page="index" lang={lang} head={versioned(head)} css={css}>
@@ -33,9 +33,8 @@ const { lang = 'en' } = Astro.props;
       <p class="hero-sub fade-up d2" data-i18n="hero-sub">A leave plan, a P99 spike, a first HTTPS visit, or a whole codebase — your AI agent answers with an explorable map, or a one-page answer that puts the conclusion first and cites its sources. Either way it is one HTML file, validated before it ships.</p>
       <div class="hero-actions fade-up d3">
         <div class="cmd-chip">
-          <span class="cmd-prompt" aria-hidden="true">$</span>
-          <code>npx skills add tt-a1i/archify -g</code>
-          <button class="cmd-copy" type="button" aria-describedby="hero-copy-status" data-copy-text="npx skills add tt-a1i/archify -g" aria-label="Copy install command">
+          <span data-en="Paste into your agent to install" data-zh="复制给 Agent 安装">Paste into your agent to install</span>
+          <button class="cmd-copy" type="button" aria-describedby="hero-copy-status" data-copy-text="Install Archify for me by reading https://raw.githubusercontent.com/tt-a1i/archify/main/llms.txt" aria-label="Copy installation prompt">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 4.5V3A1.5 1.5 0 0 0 8 1.5H3A1.5 1.5 0 0 0 1.5 3v5A1.5 1.5 0 0 0 3 9.5h1.5" stroke="currentColor" stroke-width="1.3"/></svg>
             <span class="cmd-copy-label" data-i18n="copy">Copy</span>
           </button>

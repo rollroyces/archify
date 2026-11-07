@@ -40,8 +40,8 @@ https://github.com/user-attachments/assets/78570807-ba1d-4737-953f-55504a378a87
 
 Cursor, Claude Code, Codex CLI, OpenCode에서 사용할 수 있습니다.
 
-```bash
-npx skills add tt-a1i/archify -g
+```text
+Install Archify for me by reading https://raw.githubusercontent.com/tt-a1i/archify/main/llms.txt
 ```
 
 에이전트에게 다음과 같이 요청하세요.
@@ -94,8 +94,8 @@ Archify로 한 페이지로 답해 줘: API P99가 80 ms에서 600 ms로 올랐�
 
 ### 1. 설치
 
-```bash
-npx skills add tt-a1i/archify -g
+```text
+Install Archify for me by reading https://raw.githubusercontent.com/tt-a1i/archify/main/llms.txt
 ```
 
 <details>
@@ -104,7 +104,7 @@ npx skills add tt-a1i/archify -g
 비대화형 Cursor 설치:
 
 ```bash
-npx -y skills add tt-a1i/archify --skill archify --agent cursor --global --copy --yes
+npx -y skills@latest add https://archify.si --skill archify --agent cursor --global --copy --yes
 ```
 
 설치하지 않고 사용해 보기:
@@ -226,6 +226,12 @@ node bin/archify.mjs validate workflow examples/agent-tool-call.workflow.json --
 ## 기여하기
 
 Issue, Pull Request, 실제 사용 사례 다이어그램을 환영합니다. [기여 가이드](CONTRIBUTING.md)에서 시작하세요. 실패는 재현 가능한 버그 양식으로 제보하고, 검증된 다이어그램은 [커뮤니티 Showcase 양식](https://github.com/tt-a1i/archify/issues/new?template=showcase.yml)으로 제출할 수 있습니다.
+
+## 기여자
+
+Archify를 함께 만들어 준 모든 분께 감사합니다. [팔로우해 보세요.](https://github.com/tt-a1i/archify/graphs/contributors) ❤️
+
+<p align="center"><a href="https://github.com/tt-a1i/archify/graphs/contributors"><img alt="Archify 기여자" src="https://raw.githubusercontent.com/tt-a1i/archify/contributors/contributors.svg" width="1000" /></a></p>
 
 ## Star History
 
